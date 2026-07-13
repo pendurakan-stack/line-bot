@@ -2,7 +2,7 @@ Flask==3.0.0
 line-bot-sdk==3.5.0
 pandas==2.0.3
 python-dotenv==1.0.0
-openpyxl==3.11.0
+openpyxl==3.0.10
 gunicorn==21.2.0
 requests==2.31.0
 beautifulsoup4==4.12.2
