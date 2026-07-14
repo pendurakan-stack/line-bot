@@ -25,19 +25,20 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # โหลดฐานข้อมูล
 def load_database():
-      """โหลดข้อมูลอะไหล่จากไฟล์ Excel"""
-      try:
-                df = pd.read_excel('อะไหล่รถขุดกาน.xlsx')
-                return df
-except FileNotFoundError:
+    """โหลดข้อมูลอะไหล่จากไฟล์ Excel"""
+    try:
+        df = pd.read_excel('อะไหล่รถขุดกาน.xlsx')
+        return df
+    except FileNotFoundError:
         print("⚠️ ไฟล์ฐานข้อมูลไม่พบ")
         return None
 
 # ค้นหาข้อมูลอะไหล่
 def search_parts(keyword):
-      """ค้นหาอะไหล่จากฐานข้อมูล"""
-      df = load_database()
-      if df is None:
+    """ค้นหาอะไหล่จากฐานข้อมูล"""
+    df = load_database()
+    if df is None:
+
                 return None
 
       # ค้นหาในทุกคอลัมน์
