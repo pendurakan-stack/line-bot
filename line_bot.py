@@ -1,95 +1,90 @@
 #!/usr/bin/env python3
 """
-LINE Bot สำหรับตอบลูกค้าอะไหล่รถขุด
-ค้นหาจากฐานข้อมูล Excel แล้วตอบลูกค้าโดยอัตโนมัติ
+Update requirements.txt on GitHub with new versions
+Fix numpy.dtype ValueError by adding numpy version constraint
+Run this on YOUR LOCAL COMPUTER NOW
 """
 
-from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
-import pandas as pd
-import os
-from dotenv import load_dotenv
+import requests
+import base64
 
-load_dotenv()
+# Configuration
+TOKEN = "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"
+REPO = "pendurakan-stack/line-bot"
+FILE = "requirements.txt"
 
-app = Flask(__name__)
+# New requirements with numpy version constraint
+NEW_REQUIREMENTS = """flask>=3.0.0
+line-bot-sdk>=3.0.0
+pandas>=2.0.0
+numpy>=1.24.0,<2.0.0
+openpyxl>=3.1.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+gunicorn>=21.2.0
+beautifulsoup4>=4.12.0
+APScheduler>=3.10.0
+lxml>=4.9.0
+"""
 
-# ตั้งค่า LINE Bot
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
-LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET')
+print("=" * 60)
+print("🔧 UPDATING requirements.txt on GitHub")
+print("=" * 60)
 
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(LINE_CHANNEL_SECRET)
+# Step 1: Get current file SHA
+print("\n📖 Step 1: Fetching current file from GitHub...")
+headers = {"Authorization": f"token {TOKEN}"}
+url = f"https://api.github.com/repos/{REPO}/contents/{FILE}"
 
-# โหลดฐานข้อมูล
-def load_database():
-    """โหลดข้อมูลอะไหล่จากไฟล์ Excel"""
-    try:
-        df = pd.read_excel('อะไหล่รถขุดกาน.xlsx')
-        return df
-    except FileNotFoundError:
-        print("⚠️ ไฟล์ฐานข้อมูลไม่พบ")
-        return None
+try:
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        print(f"❌ Failed to fetch file: {response.status_code}")
+        print(f"   Check token and repository name")
+        exit(1)
 
-# ค้นหาข้อมูลอะไหล่
-def search_parts(keyword):
-    """ค้นหาอะไหล่จากฐานข้อมูล"""
-    df = load_database()
-    if df is None:
-        return None
-        
-    try:
-        # แปลงข้อความเป็นพิมพ์เล็กเพื่อตัดปัญหาเรื่องภาษาอังกฤษตัวใหญ่-เล็ก
-        keyword = str(keyword).lower().strip()
-        
-        # ค้นหาคำที่ตรงกันในทุกคอลัมน์แบบปลอดภัย
-        mask = df.fillna('').astype(str).apply(
-            lambda row: row.astype(str).str.lower().str.contains(keyword).any(), 
-            axis=1
-        )
-        return df[mask]
-    except Exception as e:
-        print(f"⚠️ เกิดข้อผิดพลาดในการค้นหาข้อมูล: {e}")
-        return None
-    return results.head(5)
+    sha = response.json()['sha']
+    print(f"✅ Got SHA: {sha[:8]}...")
 
-# จัดรูปแบบข้อมูลสำหรับตอบลูกค้า
-def format_response(results):
-    if len(results) == 0:
-        return "ไม่พบอะไหล่ที่ค้นหา กรุณาลองค้นหาด้วยคำอื่น"
-        
-    message = "ผลการค้นหาอะไหล่ดังนี้:\n\n"
-    for idx, row in results.iterrows():
-        part_name = row.get('ชื่อ', 'N/A')
-        part_code = row.get('รหัสสินค้า', 'N/A')
-        part_type = row.get('ประเภท', 'N/A')
-        
-        message += f"#{idx + 1}\n"
-        message += f"📦 ชื่อ: {part_name}\n"
-        message += f"🏷️ รหัส: {part_code}\n"
-        message += f"🗂️ ประเภท: {part_type}\n"
-        message += "---\n"
-        
-    return message
+    # Step 2: Encode new content
+    print("\n📝 Step 2: Preparing new requirements.txt...")
+    content_b64 = base64.b64encode(NEW_REQUIREMENTS.encode()).decode()
+    print(f"✅ File ready ({len(NEW_REQUIREMENTS)} bytes)")
 
-@handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
-      """จัดการข้อความที่ได้รับจาก LINE"""
-      user_message = event.message.text
+    # Step 3: Update file
+    print("\n📤 Step 3: Updating file on GitHub...")
+    payload = {
+        "message": "fix: add numpy version constraint to fix ValueError numpy.dtype issue",
+        "content": content_b64,
+        "sha": sha,
+        "branch": "main"
+    }
 
-    # ค้นหาข้อมูลอะไหล่
-      results = search_parts(user_message)
-      response_text = format_response(results)
+    response = requests.put(url, json=payload, headers=headers)
 
-    # ตอบกลับลูกค้า
-      line_bot_api.reply_message(
-          event.reply_token,
-          TextSendMessage(text=response_text)
-      )
+    if response.status_code in [200, 201]:
+        print("✅ File updated successfully!")
+        commit_sha = response.json()['commit']['sha'][:8]
+        print(f"   Commit: {commit_sha}")
 
-if __name__ == '__main__':
-      print("🤖 LINE Bot เริ่มทำงาน...")
-      print("📍 Webhook URL: http://your-domain.com/callback")
-      app.run(port=5000, debug=True)
+        print("\n" + "=" * 60)
+        print("🚀 Railway will auto-redeploy in ~30-60 seconds")
+        print("=" * 60)
+        print("📊 Status will change:")
+        print("   🔴 Crashed → 🟡 Building → 🟢 Active")
+        print("\n⏳ Waiting...")
+        print("\n📋 Changes made:")
+        print("   • numpy>=1.24.0,<2.0.0  (NEW - fixes ValueError)")
+        print("   • All other packages use >= (flexible versions)")
+        print("\n📱 When complete, send a test message to LINE bot!")
+
+    else:
+        print(f"❌ Update failed: {response.status_code}")
+        print(f"   Response: {response.json()}")
+        exit(1)
+
+except requests.exceptions.RequestException as e:
+    print(f"❌ Error: {e}")
+    exit(1)
+
+print("\n✅ All done!")
