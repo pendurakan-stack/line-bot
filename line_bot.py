@@ -52,41 +52,22 @@ def search_parts(keyword):
 
 # จัดรูปแบบข้อมูลสำหรับตอบลูกค้า
 def format_response(results):
-      """จัดรูปแบบผลลัพธ์เป็นข้อความที่สวยงาม"""
-      if results is None or len(results) == 0:
-                return "🔍 ไม่พบอะไหล่ที่ค้นหา กรุณาลองค้นหาด้วยคำอื่น"
-
-      message = "✅ พบอะไหล่ดังนี้:\n\n"
-
+    if len(results) == 0:
+        return "ไม่พบอะไหล่ที่ค้นหา กรุณาลองค้นหาด้วยคำอื่น"
+        
+    message = "ผลการค้นหาอะไหล่ดังนี้:\n\n"
     for idx, row in results.iterrows():
-              # แสดงข้อมูลที่สำคัญ
-              part_name = row.get('ชื่อ', 'N/A')
-              part_code = row.get('รหัสสินค้า', 'N/A')
-              part_type = row.get('ประเภท', 'N/A')
-
+        part_name = row.get('ชื่อ', 'N/A')
+        part_code = row.get('รหัสสินค้า', 'N/A')
+        part_type = row.get('ประเภท', 'N/A')
+        
         message += f"#{idx + 1}\n"
         message += f"📦 ชื่อ: {part_name}\n"
-        message += f"🔖 รหัส: {part_code}\n"
-        message += f"📂 ประเภท: {part_type}\n"
+        message += f"🏷️ รหัส: {part_code}\n"
+        message += f"🗂️ ประเภท: {part_type}\n"
         message += "---\n"
-
-    message += "\n💬 ต้องการข้อมูลเพิ่มเติมติดต่อ: [เบอร์ติดต่อของพี่]\n"
-    message += "📲 หรือพิมพ์ค้นหาต่ออื่น"
-
+        
     return message
-
-@app.route('/callback', methods=['POST'])
-def callback():
-      """Webhook endpoint สำหรับรับข้อมูลจาก LINE"""
-      signature = request.headers.get('X-Line-Signature', '')
-      body = request.get_data(as_text=True)
-
-    try:
-              handler.handle(body, signature)
-except InvalidSignatureError:
-          abort(400)
-
-    return 'OK'
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
