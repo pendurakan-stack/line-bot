@@ -38,17 +38,21 @@ def search_parts(keyword):
     """ค้นหาอะไหล่จากฐานข้อมูล"""
     df = load_database()
     if df is None:
-
-                return None
-
-      # ค้นหาในทุกคอลัมน์
-      mask = df.astype(str).apply(lambda x: x.str.contains(keyword, case=False, na=False)).any(axis=1)
-      results = df[mask]
-
-    if len(results) == 0:
-              return None
-
-    # คืนผลลัพธ์ 5 รายการแรก
+        return None
+        
+    try:
+        # แปลงข้อความเป็นพิมพ์เล็กเพื่อตัดปัญหาเรื่องภาษาอังกฤษตัวใหญ่-เล็ก
+        keyword = str(keyword).lower().strip()
+        
+        # ค้นหาคำที่ตรงกันในทุกคอลัมน์แบบปลอดภัย
+        mask = df.fillna('').astype(str).apply(
+            lambda row: row.astype(str).str.lower().str.contains(keyword).any(), 
+            axis=1
+        )
+        return df[mask]
+    except Exception as e:
+        print(f"⚠️ เกิดข้อผิดพลาดในการค้นหาข้อมูล: {e}")
+        return None
     return results.head(5)
 
 # จัดรูปแบบข้อมูลสำหรับตอบลูกค้า
